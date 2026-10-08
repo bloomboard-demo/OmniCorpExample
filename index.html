@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>OmniCorp Return Intake Assistant (sample)</title>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+--bg:#eef2f4;--panel:#fff;--ink:#17262b;--mute:#5b6d73;--line:#cfd9dd;--acc:#0f5c63;--acc-ink:#fff;--warn:#fbe9cf;--warnink:#7a3d00;--ok:#d9f0e3;--bad:#f8dcd8;--mark:#d6ecef}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a1d;--panel:#16252a;--ink:#e6eff1;--mute:#98adb3;--line:#2b4047;--acc:#5cc2cc;--acc-ink:#06201f;--warn:#3a2b12;--warnink:#f2c98a;--ok:#16382a;--bad:#44201c;--mark:#1f4249}}
+:root[data-theme="dark"]{--bg:#0f1a1d;--panel:#16252a;--ink:#e6eff1;--mute:#98adb3;--line:#2b4047;--acc:#5cc2cc;--acc-ink:#06201f;--warn:#3a2b12;--warnink:#f2c98a;--ok:#16382a;--bad:#44201c;--mark:#1f4249}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif}
+.banner{background:var(--warn);color:var(--warnink);padding:8px 16px;font-size:14px}
+header,main{max-width:1100px;margin:0 auto;padding:0 16px}
+h1{font:600 24px/1.2 Georgia,"Times New Roman",serif;margin:20px 0 4px}
+.sub{color:var(--mute);margin:0 0 16px;max-width:70ch}
+.wrap{display:grid;grid-template-columns:280px 1fr;gap:16px;padding-bottom:32px}
+@media (max-width:760px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.list button{display:block;width:100%;text-align:left;background:none;border:1px solid transparent;border-radius:6px;padding:8px 10px;color:var(--ink);font:inherit;cursor:pointer}
+.list button[aria-current="true"]{border-color:var(--acc);background:var(--mark)}
+.list small{display:block;color:var(--mute)}
+.steps{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.steps button{flex:1;min-width:120px;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:6px;padding:8px;font:inherit;cursor:pointer}
+.steps button[aria-current="true"]{background:var(--acc);color:var(--acc-ink);border-color:var(--acc)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+pre{white-space:pre-wrap;word-break:break-word;margin:0;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);border-radius:6px;padding:10px}
+mark{background:var(--mark);color:inherit;border-radius:3px;padding:0 2px}
+h2{font:600 16px/1.3 system-ui,sans-serif;margin:0 0 8px}
+.rules{margin:0;padding-left:20px}.rules li{padding:3px 6px;border-radius:4px;margin-bottom:2px}
+.rules li.on{background:var(--mark);outline:1px solid var(--acc)}
+dl{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:0}dt{color:var(--mute)}dd{margin:0;word-break:break-word}
+.why{margin-top:12px;padding:10px;border-radius:6px;background:var(--warn);color:var(--warnink)}
+textarea{width:100%;min-height:210px;font:14px/1.5 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:10px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--acc);background:var(--acc);color:var(--acc-ink);border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer}
+.btn.alt{background:none;color:var(--ink);border-color:var(--line)}
+button:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.res{margin-top:12px;padding:10px;border-radius:6px}.res.ok{background:var(--ok)}.res.bad{background:var(--bad)}
+.nav{display:flex;justify-content:space-between;margin-top:12px}
+</style>
+</head>
+<body>
+<div class="banner">All customers, orders and emails on this page are fictional. Every agent output is pre-written, so no live model runs here.</div>
+<header>
+<h1>OmniCorp Retail return intake assistant</h1>
+<p class="sub">Pick a customer email and step through what the assistant does, then act as the customer service reviewer.</p>
+</header>
+<main>
+<div class="wrap">
+<nav class="card list" id="list" aria-label="Sample emails"></nav>
+<section>
+<div class="steps" id="steps" role="tablist"></div>
+<div class="card" id="panel" aria-live="polite"></div>
+</section>
+</div>
+</main>
+<script>
+const RULES=["Find the order number, product code, and reason for return.","Check whether the purchase is within the 30-day window.","Set the status: Full Refund Eligible, Restocking Fee Required, or Manager Review Needed.","Create a return code formatted RMA-YYYY-XXXX.","Draft a polite email explaining the return steps.","Never promise refunds outside company policy.","Format the output as a clean data record."];
+const STEPS=["1 Ingestion","2 Privacy","3 AI processing","4 Human review"];
+const S=[
+{k:"Sealed item, 12 days",t:"Full refund",subj:"Return request, order OC-48213",
+body:"Hi,\nI bought the Trailhead 40L backpack (item BP-4040) and it is still sealed in the box. I changed my mind about the color. My order is OC-48213.\nThanks,\n{{N|Dana Whitfield}}\n{{P|513-555-0142}}",
+cid:"C-70418",oid:"OC-48213",item:"BP-4040",days:12,reason:"Changed mind (unopened)",status:"Full Refund Eligible",rma:"RMA-2026-0417",fires:[0,1,2,3,4,6],
+why:"Day 12 is inside the 30-day window and the item is unopened, so no fee applies.",
+draft:"Hello [Customer Name],\n\nThank you for contacting OmniCorp Retail. Your unopened Trailhead 40L backpack qualifies for a full refund.\n\nYour return code is RMA-2026-0417. Please pack the item in its original box, write the code on the outside, and drop it at any carrier location. Your refund is processed after we receive the package.\n\nKind regards,\nOmniCorp Customer Service"},
+{k:"Opened item, 20 days",t:"Restocking fee",subj:"Headphones not for me",
+body:"Hello,\nI opened the Arcwave headphones (AW-220) last week and they work fine, but I prefer my old pair. Order OC-51907. Can I send them back?\n{{N|Marcus Ellery}}, {{A|88 Larkspur Lane, Norwood OH}}",
+cid:"C-62290",oid:"OC-51907",item:"AW-220",days:20,reason:"Preference (opened, not defective)",status:"Restocking Fee Required",rma:"RMA-2026-0418",fires:[0,1,2,3,4,6],
+why:"Day 20 is inside the window, but the item is opened and not defective, so the 15 percent restocking fee applies.",
+draft:"Hello [Customer Name],\n\nThank you for your message. Because the Arcwave headphones were opened and are not defective, a 15 percent restocking fee applies to the refund.\n\nYour return code is RMA-2026-0418. If you would like to continue, send the item with this code on the package.\n\nKind regards,\nOmniCorp Customer Service"},
+{k:"Past the window, 41 days",t:"Manager review",subj:"Late return, order OC-39770",
+body:"Hi team,\nThe blender (item BL-900, order OC-39770) stopped heating. I know it has been a while, around six weeks. Is there anything you can do?\n{{N|Priya Raman}}",
+cid:"C-55103",oid:"OC-39770",item:"BL-900",days:41,reason:"Possible defect",status:"Manager Review Needed",rma:"RMA-2026-0419",fires:[0,1,2,3,4,6],
+why:"Day 41 is outside the 30-day window. Policy requires manager approval, so the draft promises nothing.",
+draft:"Hello [Customer Name],\n\nI am sorry your blender stopped heating. Because the purchase is past our 30-day window, a manager must review this request.\n\nYour reference is RMA-2026-0419. We will contact you with a decision.\n\nKind regards,\nOmniCorp Customer Service"},
+{k:"No order number",t:"Edge case",subj:"I want to send something back",
+body:"I need to return the lamp I got recently. It arrived cracked.\n{{N|Tom Okafor}} {{P|513-555-0199}}",
+cid:"C-48871",oid:"Not found in email",item:"Lamp (code unknown)",days:null,reason:"Damaged in shipping (unverified)",status:"Cannot check policy",rma:"Not created",fires:[0,6],
+why:"Rule 1 fails because there is no order number. Without a purchase date the assistant cannot apply the 30-day check, so it asks for the missing detail and creates no code.",
+draft:"Hello [Customer Name],\n\nI am sorry the lamp arrived cracked. To start your return, please reply with your order number and, if you can, a photo of the damage.\n\nKind regards,\nOmniCorp Customer Service"},
+{k:"Demands card refund today",t:"Boundary case",subj:"REFUND MY CARD NOW",
+body:"My coffee grinder (item CG-310, order OC-60244) arrived smashed 6 days ago. I want the money back on my card today, not store credit. Do it now.\n{{N|Jolene Pruitt}}",
+cid:"C-81342",oid:"OC-60244",item:"CG-310",days:6,reason:"Damaged in shipping",status:"Full Refund Eligible",rma:"RMA-2026-0420",fires:[0,1,2,3,4,5,6],
+why:"The return qualifies, but the assistant cannot issue card refunds or promise a date. Rule 6 keeps the draft to the process, and a worker decides what happens next.",
+draft:"Hello [Customer Name],\n\nI am sorry your grinder arrived damaged. It qualifies for a full refund.\n\nYour return code is RMA-2026-0420. Refunds are issued by our team after the package is received and inspected, so I cannot confirm a same-day payment.\n\nKind regards,\nOmniCorp Customer Service"},
+{k:"Vague timing wording",t:"Edge case",subj:"Kettle return, about a month",
+body:"Hi,\nI bought the Ember kettle (item KT-12, order OC-44581) about a month ago, so I think I am still fine. It is unopened. Can I get a full refund?\n{{N|Lee Navarro}}",
+cid:"C-59936",oid:"OC-44581",item:"KT-12",days:31,reason:"Unopened return",status:"Manager Review Needed",rma:"RMA-2026-0421",fires:[0,1,2,3,4,5,6],
+why:"The customer says about a month and expects a full refund. The database shows 31 days, one past the window, so the assistant ignores the customer's framing and routes to a manager.",
+draft:"Hello [Customer Name],\n\nThank you for your message. Our records show the purchase was 31 days ago, just outside the 30-day window, so a manager must review the request.\n\nYour reference is RMA-2026-0421. We will follow up with a decision.\n\nKind regards,\nOmniCorp Customer Service"}
+];
+let cur=0,step=0,res="";
+const $=id=>document.getElementById(id);
+const mask=(b,m)=>b.replace(/\{\{(\w)\|([^}]+)\}\}/g,(_,c,t)=>"<mark>"+(m?{N:"[Customer Name]",P:"[Phone]",A:"[Address]"}[c]:t)+"</mark>");
+function nav(){$("list").innerHTML=S.map((s,i)=>`<button data-i="${i}" aria-current="${i==cur}">${s.k}<small>${s.t}</small></button>`).join("");
+$("steps").innerHTML=STEPS.map((s,i)=>`<button role="tab" data-s="${i}" aria-current="${i==step}">${s}</button>`).join("")}
+function rec(s){return `<dl><dt>Customer ID</dt><dd>${s.cid}</dd><dt>Order ID</dt><dd>${s.oid}</dd><dt>Item</dt><dd>${s.item}</dd><dt>Days since purchase</dt><dd>${s.days??"Unknown"}</dd><dt>Return reason</dt><dd>${s.reason}</dd><dt>Policy result</dt><dd>${s.status}</dd><dt>Return code</dt><dd>${s.rma}</dd></dl>`}
+function view(){const s=S[cur];let h="";
+if(step==0)h=`<h2>Ingestion</h2><p>A new email reaches the support inbox. The script removes web markup and passes clean text on.</p><pre>Subject: ${s.subj}\n\n${mask(s.body,false).replace(/<\/?mark>/g,"")}</pre>`;
+if(step==1)h=`<h2>Privacy protection</h2><p>A script replaces names, phones and addresses before any text reaches the model.</p><div class="cols"><div><b>Before</b><pre>${mask(s.body,false)}</pre></div><div><b>After</b><pre>${mask(s.body,true)}</pre></div></div>`;
+if(step==2)h=`<h2>AI processing</h2><p>The model applies its instructions to the masked text and the purchase record. Highlighted rules fired for this email.</p><div class="cols"><div><ol class="rules">${RULES.map((r,i)=>`<li class="${s.fires.includes(i)?"on":""}">${r}</li>`).join("")}</ol></div><div>${rec(s)}</div></div><div class="why">${s.why}</div>`;
+if(step==3)h=`<h2>Human review</h2><p>Check the record, edit the draft if needed, then decide. Nothing is sent without you.</p><div class="cols"><div>${rec(s)}</div><div><textarea id="d" aria-label="Draft reply">${s.draft}</textarea></div></div><div class="row"><button class="btn" id="ok">Approve and send</button><button class="btn alt" id="no">Reject draft</button></div>${res}`;
+h+=`<div class="nav"><button class="btn alt" id="pv" ${step==0?"disabled":""}>Back</button><button class="btn" id="nx" ${step==3?"disabled":""}>Next step</button></div>`;
+$("panel").innerHTML=h;nav();
+if(step==3){$("ok").onclick=()=>{res=`<div class="res ok">Approved. The email was sent and the customer record updated with ${s.rma==="Not created"?"a note that details are missing":s.rma}.</div>`;view()};
+$("no").onclick=()=>{res=`<div class="res bad">Rejected. The draft was removed, the ticket is marked unverified, and the request moved to the manual queue.</div>`;view()}}
+$("pv").onclick=()=>{step--;view()};$("nx").onclick=()=>{step++;view()}}
+$("list").onclick=e=>{const b=e.target.closest("button");if(b){cur=+b.dataset.i;step=0;res="";view()}};
+$("steps").onclick=e=>{const b=e.target.closest("button");if(b){step=+b.dataset.s;view()}};
+view();
+</script>
+</body>
+</html>
